@@ -5,8 +5,11 @@ import com.revature.util.PageOptions;
 import com.revature.model.Chef;
 import java.util.List;
 import java.util.ArrayList;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 
 
 /**
@@ -20,8 +23,7 @@ import java.sql.SQLException;
 public class ChefDAO {
 
     /** A utility class for establishing connections to the database. */
-    @SuppressWarnings("unused")
-    private ConnectionUtil connectionUtil;
+   private ConnectionUtil connectionUtil;
 
     /** 
      * Constructs a ChefDAO with the specified ConnectionUtil for database connectivity.
@@ -31,7 +33,7 @@ public class ChefDAO {
      * @param connectionUtil the utility used to connect to the database
      */
     public ChefDAO(ConnectionUtil connectionUtil) {
-        
+     this.connectionUtil = connectionUtil;   
     }
 
     /**
@@ -40,7 +42,16 @@ public class ChefDAO {
      * @return a list of all Chef objects
      */
     public List<Chef> getAllChefs() {
-        return null;
+        String sql= "SELECT * FROM CHEF ORDER BY id";
+        try(Connection conn = connectionUtil.getConnection();
+            Statement stmt = conn.createStatement();
+            ResultSet rs = stmt.executeQuery(sql)){
+                return mapRows(rs);
+            }
+        catch (SQLException e){
+            e.printStackTrace();
+            return new ArrayList<>();
+        }
     }
 
     /**
@@ -50,7 +61,16 @@ public class ChefDAO {
      * @return a paginated list of Chef objects
      */
     public Page<Chef> getAllChefs(PageOptions pageOptions) {
-        return null;
+        String sql= "SELECT * FROM chef ORDER BY id ";
+        try(Connection conn = connectionUtil.getConnection();
+            Statement stmt = conn.createStatement();
+            ResultSet rs = stmt.executeQuery(sql)){
+                return pageResults(rs, pageOptions);
+            }
+        catch (SQLException e){
+            e.printStackTrace();
+            return new Page<>(0,0,0,0,new ArrayList<>());
+        }
     }
 
     /**
@@ -60,8 +80,45 @@ public class ChefDAO {
      * @return the Chef object, if found.
      */
     public Chef getChefById(int id) {
-        return null;
+     String sql=" SELECT * FROM chef WHERE id= ?";
+      try (Connection conn = connectionUtil.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql))
+             {
+                ps.setInt(1,id);
+                try(ResultSet rs =ps.executeQuery()){
+            if(rs.next()){
+                return mapSingleRow(rs);
+            }
+        }
+    }catch (SQLException e){
+            e.printStackTrace();
     }
+    return null;
+
+
+}
+/**
+ * Retrieves a Chef by their username.
+ *
+ * @param username the username of the chef to retrieve.
+ * @return the Chef object if found, otherwise null.
+ */
+public Chef getChefByUsername(String username) {
+    String sql = "SELECT * FROM chef WHERE username = ?";
+    try (Connection conn = connectionUtil.getConnection();
+         PreparedStatement ps = conn.prepareStatement(sql)) {
+        ps.setString(1, username);
+        try (ResultSet rs = ps.executeQuery()) {
+            if (rs.next()) {
+                return mapSingleRow(rs);
+            }
+        }
+    } catch (SQLException e) {
+        e.printStackTrace();
+    }
+    return null;
+}
+
 
     /**
      * TODO: Creates a new Chef record in the database.
@@ -70,6 +127,28 @@ public class ChefDAO {
      * @return the unique identifier of the created Chef.
      */
     public int createChef(Chef chef) {
+        String sql="INSERT INTO chef(username, email, password, is_admin) VALUES(?, ?, ?, ?)";
+        try (Connection conn = connectionUtil.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql,Statement.RETURN_GENERATED_KEYS)){
+
+                ps.setString(1,chef.getUsername());
+                ps.setString(2,chef.getEmail());
+                ps.setString(3,chef.getPassword());
+                ps.setBoolean(4,chef.isAdmin());
+
+                ps.executeUpdate();
+
+             try (ResultSet rs = ps.getGeneratedKeys()) {
+                if (rs.next()) {
+                    int id = rs.getInt(1);
+                    chef.setId(id);
+                    return id;
+                } 
+            }
+        }catch(SQLException e){
+            e.printStackTrace();
+        }
+
         return 0;
     }
 
@@ -79,8 +158,21 @@ public class ChefDAO {
      * @param chef the Chef object containing updated information.
      */
     public void updateChef(Chef chef) {
-        
-    }
+     String sql="UPDATE chef SET username=?,email=?,password=?,is_admin=? WHERE id=?";
+        try (Connection conn = connectionUtil.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)){
+                ps.setString(1,chef.getUsername());
+                ps.setString(2,chef.getEmail());
+                ps.setString(3,chef.getPassword());
+                ps.setBoolean(4,chef.isAdmin());
+                ps.setInt(5,chef.getId());
+                ps.executeUpdate();
+             }catch(SQLException e){
+            e.printStackTrace();
+             }
+        }
+
+     
 
     /**
      * TODO: Deletes a Chef record from the database.
@@ -88,7 +180,14 @@ public class ChefDAO {
      * @param chef the Chef object to be deleted.
      */
     public void deleteChef(Chef chef) {
-        
+    String sql="DELETE FROM chef WHERE id=?";
+        try (Connection conn = connectionUtil.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)){
+                ps.setInt(1,chef.getId());
+                ps.executeUpdate();
+             }catch(SQLException e){
+            e.printStackTrace();
+             }    
     }
 
     /**
@@ -98,7 +197,17 @@ public class ChefDAO {
      * @return a list of Chef objects that match the search term.
      */
     public List<Chef> searchChefsByTerm(String term) {
-        return null;
+        String sql="SELECT * FROM chef WHERE LOWER(username) LIKE LOWER(?)";
+        try (Connection conn = connectionUtil.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)){
+                ps.setString(1,"%"+term+"%");
+                try(ResultSet rs=ps.executeQuery()){
+                    return mapRows(rs);
+                }
+             }catch(SQLException e){
+            e.printStackTrace();
+             }
+             return new ArrayList<>();
     }
 
     /**
@@ -109,8 +218,19 @@ public class ChefDAO {
      * @return a paginated list of Chef objects that match the search term
      */
     public Page<Chef> searchChefsByTerm(String term, PageOptions pageOptions) {
-        return null;
+        String sql="SELECT * FROM chef WHERE LOWER(username) LIKE LOWER(?)";
+        try (Connection conn = connectionUtil.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)){
+                ps.setString(1,"%"+term+"%");
+                try(ResultSet rs=ps.executeQuery()){
+                    return pageResults(rs, pageOptions);
+                }
+             }catch(SQLException e){
+            e.printStackTrace();
+             }
+             return new Page<>(0,0,0,0,new ArrayList<>());
     }
+
 
     
     // below are helper methods that are included for your convenience
@@ -156,11 +276,14 @@ public class ChefDAO {
      */
     private Page<Chef> pageResults(ResultSet set, PageOptions pageOptions) throws SQLException {
         List<Chef> chefs = mapRows(set);
-        int offset = (pageOptions.getPageNumber() - 1) * pageOptions.getPageSize();
-        int limit = offset + pageOptions.getPageSize();
-        List<Chef> slicedList = sliceList(chefs, offset, limit);
-        return new Page<>(pageOptions.getPageNumber(), pageOptions.getPageSize(),
-                chefs.size() / pageOptions.getPageSize(), chefs.size(), slicedList);
+    int offset = (pageOptions.getPageNumber() - 1) * pageOptions.getPageSize();
+    int limit = offset + pageOptions.getPageSize();
+    List<Chef> slicedList = sliceList(chefs, offset, limit);
+    return new Page<>(pageOptions.getPageNumber(), pageOptions.getPageSize(),
+    chefs.size() / pageOptions.getPageSize(), chefs.size(), slicedList);
+    
+   
+
     }
 
     /**
@@ -169,14 +292,16 @@ public class ChefDAO {
      * @param list the list of Chef objects to slice.
      * @param start the starting index.
      * @param end the ending index.
-     * @return a sliced list of Chef objects.
-     */
+     * @return a sliced list of Chef objects./ */
+     
     private List<Chef> sliceList(List<Chef> list, int start, int end) {
         List<Chef> sliced = new ArrayList<>();
-        for (int i = start; i < end; i++) {
+        for (int i = start; i < end && i < list.size(); i++) {
             sliced.add(list.get(i));
         }
         return sliced;
     }
+  
+
 }
 

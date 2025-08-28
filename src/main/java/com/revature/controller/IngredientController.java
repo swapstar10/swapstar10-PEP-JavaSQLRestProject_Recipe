@@ -4,6 +4,12 @@ import io.javalin.Javalin;
 import io.javalin.http.Context;
 
 import com.revature.service.IngredientService;
+import com.revature.model.Ingredient;
+import com.revature.util.Page;
+
+import java.util.List;
+import java.util.Optional;
+
 
 
 /**
@@ -18,7 +24,7 @@ public class IngredientController {
      * A service that manages ingredient-related operations.
      */
 
-    @SuppressWarnings("unused")
+    
     private IngredientService ingredientService;
 
     /**
@@ -30,7 +36,7 @@ public class IngredientController {
      */
 
     public IngredientController(IngredientService ingredientService) {
-        
+      this.ingredientService = ingredientService;  
     }
 
     /**
@@ -41,6 +47,16 @@ public class IngredientController {
      * @param ctx the Javalin context containing the request path parameter for the ingredient ID
      */
     public void getIngredient(Context ctx) {
+        int id = Integer.parseInt(ctx.pathParam("id"));
+        Optional<Ingredient> ingredientOpt = ingredientService.findIngredient(id);
+
+        if(ingredientOpt.isPresent()){
+            ctx.status(200);
+            ctx.json(ingredientOpt.get());
+        }else{
+            ctx.status(404);
+            ctx.result("Ingredient not found");
+        }
         
     }
 
@@ -52,7 +68,9 @@ public class IngredientController {
      * @param ctx the Javalin context containing the request path parameter for the ingredient id
      */
     public void deleteIngredient(Context ctx) {
-        
+       int id = Integer.parseInt(ctx.pathParam("id"));
+       ingredientService.deleteIngredient(id); 
+       ctx.status(204);
     }
 
     /**
@@ -63,7 +81,16 @@ public class IngredientController {
      * @param ctx the Javalin context containing the request path parameter and updated ingredient data in the request body
      */
     public void updateIngredient(Context ctx) {
-       
+       int id= Integer.parseInt(ctx.pathParam("id"));
+        Optional<Ingredient> existing = ingredientService.findIngredient(id);
+        if(existing.isEmpty()){
+            ctx.status(404);
+            return;
+        }
+        Ingredient updated = ctx.bodyAsClass(Ingredient.class);
+        updated.setId(id);
+        ingredientService.saveIngredient(updated);
+        ctx.status(204); 
     }
 
     /**
@@ -75,6 +102,12 @@ public class IngredientController {
      */
     public void createIngredient(Context ctx) {
 
+        Ingredient ingredient = ctx.bodyAsClass(Ingredient.class);
+        ingredientService.saveIngredient(ingredient);
+        
+            ctx.status(201);
+            ctx.json(ingredient);
+       
     }
 
     /**
@@ -85,8 +118,38 @@ public class IngredientController {
      * @param ctx the Javalin context containing query parameters for pagination, sorting, and filtering
      */
     public void getIngredients(Context ctx) {
-       
+
+        String term = ctx.queryParam("term");
+        String sortBy = ctx.queryParam("sortBy");
+        String sortDirection = ctx.queryParam("sortDirection");
+        Integer page = tryParseInt(ctx.queryParam("page"));
+        Integer pageSize = tryParseInt(ctx.queryParam("pageSize"));
+
+        boolean hasPaging =(page != null && pageSize != null );
+
+        if (hasPaging){
+            String effectiveSortBy = (sortBy != null && !sortBy.isBlank()) ? sortBy : "id";
+            String effectiveSortDir = (sortDirection != null && !sortDirection.isBlank()) ? sortDirection : "asc";
+            
+            Page<Ingredient> ingredientPage = ingredientService.searchIngredients(term, page, pageSize, effectiveSortBy, effectiveSortDir);
+
+            ctx.status(200);
+            ctx.json(ingredientPage);
+            return;
+        }
+        List<Ingredient> list =ingredientService.searchIngredients(term);
+        ctx.status(200);
+        ctx.json(list);
     }
+    private Integer tryParseInt(String s){
+        if(s == null) return null;
+        try{
+            return Integer.valueOf(s);
+        }catch(NumberFormatException ex){
+            return null;
+        }
+    }
+ 
 
     /**
      * A helper method to retrieve a query parameter from the context as a specific class type, or return a default value if the query parameter is not present.
@@ -98,6 +161,7 @@ public class IngredientController {
      * @param defaultValue the default value to return if the parameter is absent
      * @return the query parameter value as the specified type, or the default value if absent
      */
+    @SuppressWarnings("unused")
     private <T> T getParamAsClassOrElse(Context ctx, String queryParam, Class<T> clazz, T defaultValue) {
         if(ctx.queryParam(queryParam) != null) {
             return ctx.queryParamAsClass(queryParam, clazz).get();

@@ -28,7 +28,14 @@ public class PageOptions {
         this.pageSize = pageSize;
     }
 
-    public PageOptions(int pageNumber, int pageSize, String sortBy, String sortDirection) {
+    public PageOptions(int pageNumber, int pageSize, String sortBy, boolean isAsc) {
+        this.pageNumber = pageNumber;
+        this.pageSize = pageSize;
+        this.sortBy = sortBy;
+        this.sortDirection = isAsc?"ASC":"DESC";
+    }
+
+    public PageOptions(int pageNumber, int pageSize, String sortBy, String sortDirection){
         this.pageNumber = pageNumber;
         this.pageSize = pageSize;
         this.sortBy = sortBy;

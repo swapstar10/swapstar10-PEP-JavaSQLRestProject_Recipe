@@ -3,8 +3,11 @@ package com.revature.controller;
 import io.javalin.Javalin;
 import io.javalin.http.Context;
 
+import com.revature.model.Chef;
 import com.revature.service.AuthenticationService;
 import com.revature.service.ChefService;
+
+
 
 
 
@@ -16,11 +19,11 @@ import com.revature.service.ChefService;
 public class AuthenticationController {
 
     /** A service that handles chef-related operations. */
-    @SuppressWarnings("unused")
+   
     private ChefService chefService;
 
     /** A service that handles authentication-related operations. */
-    @SuppressWarnings("unused")
+    
     private AuthenticationService authService;
 
     /**
@@ -32,7 +35,8 @@ public class AuthenticationController {
      * @param authService the service used to manage authentication-related operations
      */
     public AuthenticationController(ChefService chefService, AuthenticationService authService) {
-        
+      this.chefService = chefService;
+      this.authService = authService;  
     }
 
     /**
@@ -45,6 +49,26 @@ public class AuthenticationController {
      * @param ctx the Javalin context containing the chef information in the request body
      */
     public void register(Context ctx) {
+        Chef chef =ctx.bodyAsClass(Chef.class);
+
+        if(chef == null || chef.getUsername() == null || chef.getUsername().isBlank()){
+            ctx.status(400);
+            ctx.result("Username is required");
+            return;
+        }
+         if(chef.getPassword() == null || chef.getPassword().isBlank()){
+            ctx.status(400);
+            ctx.result("Password is required");
+            return;
+        }
+         if(chefService.getChefByUsername(chef.getUsername()).isPresent()){
+            ctx.status(409);
+            ctx.result("Username already exists");
+            return;
+        }
+        chefService.saveChef(chef);
+        ctx.status(201);
+        ctx.json(chef);
         
     }
 
@@ -56,7 +80,43 @@ public class AuthenticationController {
      * @param ctx the Javalin context containing the chef login credentials in the request body
      */
     public void login(Context ctx) {
+        Chef body = null;
+        try{
+            body = ctx.bodyAsClass(Chef.class);
+        }catch(Exception ignore){
+
+        }
+
+        String username = null;
+        String password = null;
+
+        if(body != null){
+            username = body.getUsername();
+            password = body.getPassword();
+        }
+
+        if (username == null) username = ctx.formParam("username");
+        if (password == null) password = ctx.formParam("password");
+        if (username == null) username = ctx.queryParam("username");
+        if (password == null) password = ctx.queryParam("password");
+
+        if(username == null || username.isBlank() || password == null){
+            ctx.status(401);
+            ctx.result("Invalid username or password");
+            return;
+        }
+        String token = authService.login(new Chef(username, password));
+        if(token==null){
+            ctx.status(401);
+            ctx.result("Invalid username or password");
+            return;
+        }
         
+          ctx.header("Authorization",token);
+          ctx.status(200);
+          ctx.result(token);
+
+         
     }
 
     /**
@@ -65,7 +125,25 @@ public class AuthenticationController {
      * @param ctx the Javalin context, containing the Authorization token in the request header
      */
     public void logout(Context ctx) {
+        String token =extractToken(ctx.header("Authorization"));
+
+        if(token==null|| !authService.isTokenValid(token)){
+            ctx.status(401);
+            ctx.result("Invalid or missing token");
+            return;
+        }
+        authService.logout(token);
+        ctx.status(200);
+        ctx.result("Logout successful")  ;  
         
+    }
+     private String extractToken(String header){
+        if( header == null) return null;
+        String h = header.trim();
+        if(h.regionMatches(true, 0, "Bearer ", 0, 7)){
+            return h.substring(7).trim();
+        }
+        return h;
     }
 
     /**

@@ -6,6 +6,8 @@ import java.util.Optional;
 import com.revature.dao.RecipeDAO;
 import com.revature.model.Recipe;
 import com.revature.util.Page;
+import com.revature.util.PageOptions;
+
 
 /**
  * The RecipeService class provides services related to Recipe objects,
@@ -17,7 +19,7 @@ import com.revature.util.Page;
 public class RecipeService {
 
     /** The data access object used for performing operations on Recipe entities. */
-    private RecipeDAO recipeDAO;
+    private final RecipeDAO recipeDAO;
 
     /**
      * Constructs a RecipeService with the specified RecipeDao.
@@ -27,7 +29,7 @@ public class RecipeService {
      * @param recipeDao the RecipeDao to be used by this service for data access
      */
     public RecipeService(RecipeDAO recipeDAO) {
-        
+     this.recipeDAO = recipeDAO;   
     }
 
     /**
@@ -38,7 +40,7 @@ public class RecipeService {
      *         an empty Optional if not found
      */
     public Optional<Recipe> findRecipe(int id) {
-        return null;
+        return Optional.ofNullable(recipeDAO.getRecipeById(id));
     }
 
     /**
@@ -49,7 +51,12 @@ public class RecipeService {
      * @param recipe the Recipe object to be saved
      */
     public void saveRecipe(Recipe recipe) {
-        
+     if(recipe.getId()==0){
+        int newId=recipeDAO.createRecipe(recipe);
+        recipe.setId(newId);
+     }  else{
+        recipeDAO.updateRecipe(recipe);
+     } 
     }
 
     /**
@@ -63,7 +70,13 @@ public class RecipeService {
      * @return a Page containing the results of the search
      */
     public Page<Recipe> searchRecipes(String term, int page, int pageSize, String sortBy, String sortDirection) {
-        return null;
+        boolean asc ="asc".equalsIgnoreCase(sortDirection);
+
+        PageOptions pageOptions = new PageOptions(page, pageSize, sortBy, asc);
+if(term==null||term.isBlank()){
+    return recipeDAO.getAllRecipes(pageOptions);
+}
+        return recipeDAO.searchRecipesByTerm(term,pageOptions);
     }
 
     /**
@@ -73,7 +86,10 @@ public class RecipeService {
      * @return a list of Recipe objects that match the search term
      */
     public List<Recipe> searchRecipes(String term) {
-        return null;
+        if(term==null||term.isBlank()){
+            return recipeDAO.getAllRecipes();
+        }
+        return recipeDAO.searchRecipesByTerm(term);
     }
 
     /**
@@ -81,7 +97,30 @@ public class RecipeService {
      *
      * @param id the unique identifier of the recipe to be deleted
      */
-    public void deleteRecipe(int id) {
-        
+    public boolean deleteRecipe(int id) {
+        Recipe existing =recipeDAO.getRecipeById(id);
+        if(existing!=null){
+            recipeDAO.deleteRecipe(existing); 
+            return true;
+        }
+    return false;  
+    }
+
+    public Optional<Recipe> updateRecipe(int id, Recipe recipeUpdate) {
+        Optional<Recipe> existing = findRecipe(id);
+        if (existing.isPresent()) {
+            Recipe recipe = existing.get();
+            recipe.setName(recipeUpdate.getName());
+            recipe.setInstructions(recipeUpdate.getInstructions());
+            recipe.setAuthor(recipeUpdate.getAuthor());
+            saveRecipe(recipe);
+            return Optional.of(recipe);
+        }
+        return Optional.empty();
+    }
+
+    public void createRecipe(Recipe recipe) {
+        recipe.setId(0);
+        saveRecipe(recipe);
     }
 }
