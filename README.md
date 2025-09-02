@@ -7,7 +7,7 @@ RecipeHub is a Java-based backend system built to manage recipes, chefs, and ing
 ## Architecture & Components
 
 The project follows a standard layered structure:
-- Model Layer: Represents core domain objects like Chef, Recipe, and Ingredient.
+- (#### Model Layer): Represents core domain objects like Chef, Recipe, and Ingredient.
 - DAO Layer: Handles data access and integrates pagination via utility classes (Page and PageOption) to manage large datasets efficiently.
 - Service Layer: Encapsulates business logic and mediates between controllers and DAOs.
 - Controller Layer: Defines endpoints for user interaction with recipes, chefs, and ingredients.
