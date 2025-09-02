@@ -25,7 +25,7 @@ This schema ensures normalized data storage and efficient querying.
 
 ## Core Features
 
-- #### Database Initialization
+- #### Database Initialization 
 RecipeHub sets up all necessary tables for chefs, recipes, and ingredients, ensuring the backend is fully equipped for data persistence and retrieval.
 
 - #### Recipe Management
@@ -38,9 +38,9 @@ Ingredients can be added, updated, deleted, or searched, ensuring flexible contr
 Chef information can be maintained with full CRUD operations and keyword search. This ensures recipes are properly attributed to their creators and chef profiles remain up-to-date (ChefDAO and ChefService).
 
 - #### Authentication & Access Control
- - Chefs can register, log in, and log out, providing a secure entry point for the system.
- - AuthenticationService and AuthenticationController govern this functionality.
- - Admin-only restrictions are enforced by AdminMiddleware, ensuring only privileged users can update or delete ingredients and delete recipes.
+     - Chefs can register, log in, and log out, providing a secure entry point for the system.
+     - AuthenticationService and AuthenticationController govern this functionality.
+     - Admin-only restrictions are enforced by AdminMiddleware, ensuring only privileged users can update or delete ingredients and delete recipes.
 
 ## Technology Stack
 
