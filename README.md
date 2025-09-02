@@ -1,10 +1,10 @@
-#RecipeHub (Back-End)
+# RecipeHub (Back-End)
 
-##Overview
+## Overview
 
 RecipeHub is a Java-based backend system built to manage recipes, chefs, and ingredients through a layered architecture that emphasizes clean separation of concerns. The platform leverages object-oriented programming principles and a relational database to deliver secure, efficient data management. Certain actions, such as updating or deleting resources, are restricted to admin users, ensuring proper role-based access control.
 
-##Architecture & Components
+## Architecture & Components
 
 The project follows a standard layered structure:
 - Model Layer: Represents core domain objects like Chef, Recipe, and Ingredient.
@@ -13,7 +13,7 @@ The project follows a standard layered structure:
 - Controller Layer: Defines endpoints for user interaction with recipes, chefs, and ingredients.
 - Utilities: Includes database connection management (ConnectionUtil), pagination helpers, and AdminMiddleware for access control.
 
-##Database Design
+## Database Design
 
 The database schema is defined in sqlScript.sql. It provides structured tables for:
 - Chef –> Stores user and role information.
@@ -22,7 +22,7 @@ The database schema is defined in sqlScript.sql. It provides structured tables f
 - RecipeIngredient –> A join table managing the many-to-many relationship between recipes and ingredients.
 This schema ensures normalized data storage and efficient querying.
 
-##Core Features
+## Core Features
 
 1. Database Initialization
 RecipeHub sets up all necessary tables for chefs, recipes, and ingredients, ensuring the backend is fully equipped for data persistence and retrieval.
@@ -41,7 +41,7 @@ Chef information can be maintained with full CRUD operations and keyword search.
 - AuthenticationService and AuthenticationController govern this functionality.
 - Admin-only restrictions are enforced by AdminMiddleware, ensuring only privileged users can update or delete ingredients and delete recipes.
 
-##Technology Stack
+## Technology Stack
 
 - Language: Java (compatible with versions 9–22)
 - Database: Relational SQL (schema defined in sqlScript.sql)
