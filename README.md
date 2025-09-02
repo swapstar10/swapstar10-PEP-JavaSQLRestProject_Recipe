@@ -16,30 +16,30 @@ The project follows a standard layered structure:
 ## Database Design
 
 The database schema is defined in sqlScript.sql. It provides structured tables for:
-- Chef –> Stores user and role information.
-- Recipe –> Represents culinary entries created by chefs.
-- Ingredient –> Captures all possible components used in recipes.
-- RecipeIngredient –> A join table managing the many-to-many relationship between recipes and ingredients.
+- Chef: Stores user and role information.
+- Recipe: Represents culinary entries created by chefs.
+- Ingredient: Captures all possible components used in recipes.
+- RecipeIngredient: A join table managing the many-to-many relationship between recipes and ingredients.
 This schema ensures normalized data storage and efficient querying.
 
 ## Core Features
 
-1. Database Initialization
+- #### Database Initialization
 RecipeHub sets up all necessary tables for chefs, recipes, and ingredients, ensuring the backend is fully equipped for data persistence and retrieval.
 
-2. Recipe Management
+- #### Recipe Management
 Users can create, update, delete, and search recipes by keyword. This functionality is implemented through RecipeDAO, RecipeService, and RecipeController.
 
-3. Ingredient Management
+- #### Ingredient Management
 Ingredients can be added, updated, deleted, or searched, ensuring flexible control over recipe composition. These features are handled within the IngredientDAO, IngredientService, and IngredientController.
 
-4. Chef Management
+- #### Chef Management
 Chef information can be maintained with full CRUD operations and keyword search. This ensures recipes are properly attributed to their creators and chef profiles remain up-to-date (ChefDAO and ChefService).
 
-5. Authentication & Access Control
-- Chefs can register, log in, and log out, providing a secure entry point for the system.
-- AuthenticationService and AuthenticationController govern this functionality.
-- Admin-only restrictions are enforced by AdminMiddleware, ensuring only privileged users can update or delete ingredients and delete recipes.
+- #### Authentication & Access Control
+     - Chefs can register, log in, and log out, providing a secure entry point for the system.
+     - AuthenticationService and AuthenticationController govern this functionality.
+     - Admin-only restrictions are enforced by AdminMiddleware, ensuring only privileged users can update or delete ingredients and delete recipes.
 
 ## Technology Stack
 
