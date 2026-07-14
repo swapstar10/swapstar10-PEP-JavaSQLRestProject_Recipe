@@ -45,4 +45,10 @@ replay_pid*
 #H2
 **/h2/**
 
+# VS Code settings
+.vscode/
+
+# Postman local files
+.postman/
+
 
