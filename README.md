@@ -421,24 +421,6 @@ postman/
 ```
 
 ---
-
-# 🔒 Git Configuration
-
-The project ignores:
-
-```
-target/
-*.class
-.idea/
-.vscode/
-.postman/
-history_log.txt
-```
-
-to prevent committing generated files.
-
----
-
 # 👨‍💻 Author
 
 **Swapnil Lakhera**
