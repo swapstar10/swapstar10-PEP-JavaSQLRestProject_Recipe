@@ -13,223 +13,380 @@ import com.revature.service.RecipeService;
 import com.revature.util.Page;
 
 
-
 /**
  * The RecipeController class provides RESTful endpoints for managing recipes.
- * It interacts with the RecipeService to fetch, create, update, and delete recipes.
- * Handlers in this class are fields assigned to lambdas, which define the behavior for each endpoint.
+ * It interacts with RecipeService to perform CRUD operations.
  */
-
 public class RecipeController {
 
-    /** The service used to interact with the recipe data. */
-    @SuppressWarnings("unused")
     private RecipeService recipeService;
 
-    /** A service that handles authentication-related operations. */
-    @SuppressWarnings("unused")
     private AuthenticationService authService;
 
-    /**
-     * TODO: Constructor that initializes the RecipeController with the parameters.
-     * 
-     * @param recipeService The service that handles the business logic for managing recipes.
-     * * @param authService the service used to manage authentication-related operations
-     */
+
     public RecipeController(RecipeService recipeService, AuthenticationService authService) {
-      this.recipeService=recipeService;
-      this.authService=authService;  
+        this.recipeService = recipeService;
+        this.authService = authService;
     }
 
+
     /**
-     * TODO: Handler for fetching all recipes. Supports pagination, sorting, and filtering by recipe name or ingredient.
-     * 
-     * Responds with a 200 OK status and the list of recipes, or 404 Not Found with a result of "No recipes found".
+     * Get all recipes with optional search, pagination and sorting.
      */
     public Handler fetchAllRecipes = ctx -> {
-    String term = ctx.queryParam("term");
-    String sortBy = ctx.queryParam("sortBy");
-    String sortDirection = ctx.queryParam("sortDirection");
-    Integer page = tryParseInt(ctx.queryParam("page"));
-    Integer pageSize = tryParseInt(ctx.queryParam("pageSize"));
 
-    boolean hasPaging = (page != null && pageSize != null);
+        String term = ctx.queryParam("term");
 
-    if(hasPaging){
-     String effSortBy = (sortBy != null && !sortBy.isBlank()) ? sortBy : "id";
-     String effSortDir = (sortDirection != null && !sortDirection.isBlank()) ? sortDirection : "asc";   
+String name = ctx.queryParam("name");
+String ingredient = ctx.queryParam("ingredient");
 
-     Page<Recipe> pageResult = recipeService.searchRecipes(term, page, pageSize, effSortBy, effSortDir);
-     ctx.status(200);
-     ctx.json(pageResult);
-     return;
-    }
-
-    String name = ctx.queryParam("name");
-    String ingredient = ctx.queryParam("ingredient");
-
-    List<Recipe> results;
+// support old test params
+if(term == null){
     if(name != null){
-        results = recipeService.searchRecipes(name);
-    }else if(ingredient != null){
-        results = recipeService.searchRecipes(ingredient);
-    }else{
-     results = recipeService.searchRecipes(null);   
+        term = name;
     }
+    else if(ingredient != null){
+        term = ingredient;
+    }
+}
 
-    if(results == null || results.isEmpty()){
-        ctx.status(404);
-        ctx.result("No recipes found");
-    }else {
-        ctx.status(200);
-        ctx.json(results);
-    }
+String sortBy = ctx.queryParam("sortBy");
+String sortDirection = ctx.queryParam("sortDirection");
+
+        Integer page = tryParseInt(ctx.queryParam("page"));
+        Integer pageSize = tryParseInt(ctx.queryParam("pageSize"));
+
+
+        boolean hasPaging = page != null && pageSize != null;
+
+
+        if(hasPaging){
+
+            String effectiveSortBy =
+                    (sortBy != null && !sortBy.isBlank())
+                    ? sortBy
+                    : "id";
+
+
+            String effectiveSortDirection =
+                    (sortDirection != null && !sortDirection.isBlank())
+                    ? sortDirection
+                    : "asc";
+
+
+            Page<Recipe> result =
+                    recipeService.searchRecipes(
+                            term,
+                            page,
+                            pageSize,
+                            effectiveSortBy,
+                            effectiveSortDirection
+                    );
+
+
+            ctx.status(200);
+            ctx.json(result);
+            return;
+        }
+
+
+
+        List<Recipe> recipes;
+
+
+        if(term != null){
+
+            recipes = recipeService.searchRecipes(term);
+
+        }
+        else{
+
+            recipes = recipeService.searchRecipes(null);
+
+        }
+
+
+
+        if(recipes == null || recipes.isEmpty()){
+
+            ctx.status(404);
+            ctx.result("No recipes found");
+
+        }
+        else{
+
+            ctx.status(200);
+            ctx.json(recipes);
+
+        }
 
     };
 
-     @SuppressWarnings("unused")
-       private Integer tryParseInt(String s){
-        if (s == null) return null;
-        try {
-         return Integer.valueOf(s);
-        }catch (NumberFormatException ex){
-        return null;
+
+
+    private Integer tryParseInt(String value){
+
+        if(value == null)
+            return null;
+
+        try{
+
+            return Integer.parseInt(value);
+
         }
+        catch(NumberFormatException e){
+
+            return null;
+
+        }
+
     }
-    
+
+
+
 
     /**
-     * TODO: Handler for fetching a recipe by its ID.
-     * 
-     * If successful, responds with a 200 status code and the recipe as the response body.
-     * 
-     * If unsuccessful, responds with a 404 status code and a result of "Recipe not found".
+     * Get recipe by id.
      */
     public Handler fetchRecipeById = ctx -> {
-        int id=Integer.parseInt(ctx.pathParam("id"));
-        Optional<Recipe> recipeOpt= recipeService.findRecipe(id);
 
-        if(recipeOpt.isPresent()){
+
+        int id = Integer.parseInt(ctx.pathParam("id"));
+
+
+        Optional<Recipe> recipe =
+                recipeService.findRecipe(id);
+
+
+
+        if(recipe.isPresent()){
+
             ctx.status(200);
-            ctx.json(recipeOpt.get());
+            ctx.json(recipe.get());
 
-        }else{
-          ctx.status(404);
-          ctx.result("Recipe not found");  
         }
-        
+        else{
+
+            ctx.status(404);
+            ctx.result("Recipe not found");
+
+        }
+
     };
 
-    /**
-     * TODO: Handler for creating a new recipe. Requires authentication via an authorization token taken from the request header.
-     * 
-     * If successful, responds with a 201 Created status.
-     * If unauthorized, responds with a 401 Unauthorized status.
-     */
-     private String extractToken(String header){
-        if( header == null) return null;
-        String h = header.trim();
-        if(h.regionMatches(true, 0, "Bearer ", 0, 7)){
-            return h.substring(7).trim();
+
+
+
+    private String extractToken(String header){
+
+        if(header == null)
+            return null;
+
+
+        String value = header.trim();
+
+
+        if(value.regionMatches(true,0,"Bearer ",0,7)){
+
+            return value.substring(7).trim();
+
         }
-        return h;
+
+
+        return value;
+
     }
-    public Handler createRecipe = ctx -> {
-        String header = ctx.header("Authorization");
-      String token = extractToken(header);
-      if(token == null||!authService.isTokenValid(token)){
-        ctx.status(401);
-        ctx.result("Unauthorized");
-      return;
-    } 
 
-    Recipe newRecipe = ctx.bodyAsClass(Recipe.class);
-    recipeService.createRecipe(newRecipe);
-    ctx.status(201);
-    ctx.json(newRecipe);
-    };
 
-   
+
+
 
     /**
-     * TODO: Handler for deleting a recipe by its id.
-     * 
-     * If successful, responds with a 200 status and result of "Recipe deleted successfully."
-     * 
-     * Otherwise, responds with a 404 status and a result of "Recipe not found."
+     * Create recipe.
+     */
+    public Handler createRecipe = ctx -> {
+
+
+    String token =
+            extractToken(ctx.header("Authorization"));
+
+
+    if(token == null || !authService.isTokenValid(token)){
+
+        ctx.status(401);
+        ctx.result("Invalid or missing token");
+        return;
+
+    }
+
+
+    Recipe recipe =
+            ctx.bodyAsClass(Recipe.class);
+
+
+    // Attach logged-in chef as recipe author
+    recipe.setAuthor(
+            authService.getChefFromSessionToken(token)
+    );
+
+
+    recipeService.createRecipe(recipe);
+
+
+    ctx.status(201);
+    ctx.json(recipe);
+
+};
+
+
+
+
+
+
+    /**
+     * Delete recipe.
      */
     public Handler deleteRecipe = ctx -> {
-        int id = Integer.parseInt(ctx.pathParam("id"));
-        boolean deleted=recipeService.deleteRecipe(id);
+
+
+        int id =
+                Integer.parseInt(ctx.pathParam("id"));
+
+
+
+        boolean deleted =
+                recipeService.deleteRecipe(id);
+
+
 
         if(deleted){
+
             ctx.status(200);
             ctx.result("Recipe deleted successfully");
-        }else{
+
+        }
+        else{
+
             ctx.status(404);
             ctx.result("Recipe not found");
+
         }
+
+
     };
 
+
+
+
+
+
+
     /**
-     * TODO: Handler for updating a recipe by its ID.
-     * 
-     * If successful, responds with a 200 status code and the updated recipe as the response body.
-     * 
-     * If unsuccessfuly, responds with a 404 status code and a result of "Recipe not found."
+     * Update recipe.
      */
     public Handler updateRecipe = ctx -> {
-        int id=Integer.parseInt(ctx.pathParam("id"));
-        Recipe recipeUpdate= ctx.bodyAsClass(Recipe.class);
 
-        Optional<Recipe>updated=recipeService.updateRecipe(id, recipeUpdate);
+
+        int id =
+                Integer.parseInt(ctx.pathParam("id"));
+
+
+
+        Recipe recipe =
+                ctx.bodyAsClass(Recipe.class);
+
+
+
+        recipe.setId(id);
+
+
+
+        Optional<Recipe> updated =
+                recipeService.updateRecipe(id, recipe);
+
+
 
         if(updated.isPresent()){
+
             ctx.status(200);
             ctx.json(updated.get());
-        }else{
+
+        }
+        else{
+
             ctx.status(404);
             ctx.result("Recipe not found");
+
         }
 
     };
 
-    /**
-     * A helper method to retrieve a query parameter from the context as a specific class type, or return a default value if the query parameter is not present.
-     * 
-     * @param <T> The type of the query parameter to be returned.
-     * @param ctx The context of the request.
-     * @param queryParam The query parameter name.
-     * @param clazz The class type of the query parameter.
-     * @param defaultValue The default value to return if the query parameter is not found.
-     * @return The value of the query parameter converted to the specified class type, or the default value.
-     */
+
+
+
+
+
+
     @SuppressWarnings("unused")
-    private <T> T getParamAsClassOrElse(Context ctx, String queryParam, Class<T> clazz, T defaultValue) {
-        String paramValue = ctx.queryParam(queryParam);
-        if (paramValue != null) {
-            if (clazz == Integer.class) {
-                return clazz.cast(Integer.valueOf(paramValue));
-            } else if (clazz == Boolean.class) {
-                return clazz.cast(Boolean.valueOf(paramValue));
-            } else {
-                return clazz.cast(paramValue);
+    private <T> T getParamAsClassOrElse(
+            Context ctx,
+            String queryParam,
+            Class<T> clazz,
+            T defaultValue) {
+
+
+        String value =
+                ctx.queryParam(queryParam);
+
+
+
+        if(value != null){
+
+            if(clazz == Integer.class){
+
+                return clazz.cast(Integer.valueOf(value));
+
             }
+            else if(clazz == Boolean.class){
+
+                return clazz.cast(Boolean.valueOf(value));
+
+            }
+            else{
+
+                return clazz.cast(value);
+
+            }
+
         }
+
+
         return defaultValue;
+
     }
-   
+
+
+
+
+
 
     /**
-     * Configure the routes for recipe operations.
-     *
-     * @param app the Javalin application
+     * Configure routes.
      */
-    public void configureRoutes(Javalin app) {
+    public void configureRoutes(Javalin app){
+
+
         app.get("/recipes", fetchAllRecipes);
+
         app.get("/recipes/{id}", fetchRecipeById);
+
         app.post("/recipes", createRecipe);
+
         app.put("/recipes/{id}", updateRecipe);
+
         app.delete("/recipes/{id}", deleteRecipe);
+
+
     }
+
 }
